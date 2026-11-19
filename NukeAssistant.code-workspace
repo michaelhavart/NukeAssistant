@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "C:/git/mtools_nuke/mtools"
+		},
+		{
+			"path": "C:/Program Files/Nuke15.1v3"
+		}
+	],
+	"settings": {
+		"window.title": "Nuke Assistant",
+		"files.readonlyInclude": {
+			"C:/git/mtools_nuke/mtools/**": true,
+			"C:/Program Files/Nuke15.1v3/**": true
+		}
+	}
+}

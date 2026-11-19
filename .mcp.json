@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "nuke": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--directory", "C:/git/nuke/NukeAssistant", "nuke-mcp"]
+    }
+  }
+}
