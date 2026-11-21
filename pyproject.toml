@@ -5,7 +5,7 @@ description = "MCP server that lets AI assistants control and build content in F
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "mcp>=1.9",
+    "mcp>=2",  # uses the 2.x API (mcp.server.mcpserver)
 ]
 
 [project.scripts]

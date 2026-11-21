@@ -17,14 +17,17 @@ The bridge also targets PySide6 for Nuke 16.
 
 ## Setup
 
-1. **Python side**: `uv sync` (creates `.venv` with the `mcp` SDK).
+1. **Python side** (optional): install [uv](https://docs.astral.sh/uv/). The client
+   starts the server with `uv run`, which creates `.venv` and installs the locked
+   dependencies on first start. Running `uv sync` once beforehand avoids a slow first
+   start that some clients may time out on, and shows install errors in your terminal.
 2. **Nuke side**, pick one:
    - `python install_nuke_plugin.py` — adds one `nuke.pluginAddPath(...)` line to
-     `~/.nuke/init.py` (`--uninstall` removes it), or
+    `~/.nuke/init.py` (`--uninstall` removes it), or
    - add `C:/git/nuke/NukeAssistant/nuke_plugin` to `NUKE_PATH`.
 
-   Interactive Nuke then starts the bridge automatically and shows a **NukeAssistant**
-   menu (Start / Stop / Status). Set `NUKE_MCP_AUTOSTART=0` to start it by hand.
+    Interactive Nuke then starts the bridge automatically and shows a **NukeAssistant**
+    menu (Start / Stop / Status). Set `NUKE_MCP_AUTOSTART=0` to start it by hand.
 3. **Client**:
    - Claude Code: `.mcp.json` in this folder already registers the `nuke` server.
    - Claude Desktop / others:
@@ -50,20 +53,21 @@ headless) with the plugin injected through `NUKE_PATH`.
 | Discovery / UI | `list_node_classes`, `view_node`, `zoom_to_nodes`, `capture_screen` |
 
 Design notes:
+
 - Every state-changing call is one named undo step (`NukeAssistant: <command>`), so an artist can Ctrl+Z it.
 - Knob dumps show only non-default knobs unless asked, to keep responses small.
 - `render_preview` uses temporary Reformat/Write nodes that are kept out of undo and the
-  modified flag.
+modified flag.
 - `capture_screen` reads screen pixels (Nuke's Viewer/DAG are OpenGL), so it refuses
-  unless Nuke is the foreground window — it can never capture other applications.
+unless Nuke is the foreground window — it can never capture other applications.
 - Tools don't pull Nuke to the front. When Nuke is in the background, render progress
-  dialogs stay off screen and other windows open without taking focus. If Nuke takes the
-  foreground anyway, the bridge gives it straight back, unless you just clicked or typed,
-  in which case it assumes you switched to Nuke yourself. When you're working in Nuke,
-  nothing changes.
+dialogs stay off screen and other windows open without taking focus. If Nuke takes the
+foreground anyway, the bridge gives it straight back, unless you just clicked or typed,
+in which case it assumes you switched to Nuke yourself. When you're working in Nuke,
+nothing changes.
 - `collapse_to_group` uses its own implementation everywhere: Nuke's `collapseToGroup`
-  is GUI-only and can open a modal "Group Output" question. `expand_group` has a
-  terminal-mode implementation.
+is GUI-only and can open a modal "Group Output" question. `expand_group` has a
+terminal-mode implementation.
 - `launch_nuke` starts Nuke with a hidden console, so Frame Server workers don't open console windows.
 
 ## Configuration
@@ -85,6 +89,7 @@ reach its port. It binds to localhost only; set `NUKE_MCP_TOKEN` on shared machi
 ```
 Nuke15.1.exe -t nuke_plugin/start_headless.py [script.nk]
 ```
+
 Serves until `shutdown_headless_nuke` (or Ctrl+C). Needs a render or interactive licence.
 
 ## Tests
