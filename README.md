@@ -5,39 +5,42 @@ build and edit node graphs, set knobs, keyframes and expressions, build Groups/g
 render previews it can look at, render Write nodes, and run Python/TCL.
 
 ```
-MCP client ──stdio──▶ nuke-mcp (src/nuke_mcp, Python ≥3.10, mcp SDK 2.x)
+MCP client ──stdio──▶ nuke_mcp_server.py (src/nuke_mcp, runs on Nuke's own Python)
                           │  newline-delimited JSON over TCP 127.0.0.1:54321
                           ▼
-              Nuke ─ nuke_mcp_bridge (nuke_plugin/, stdlib only)
+              Nuke ─ nuke_mcp_bridge (nuke_plugin/)
                      runs every command on Nuke's main thread
 ```
+
+Nothing to install: both sides use only the Python standard library, and the MCP
+server runs on the `python.exe` that ships with Nuke 15+.
 
 Tested with Nuke 15.1v3 (Python 3.10, PySide2) in GUI and terminal (`-t`) mode.
 The bridge also targets PySide6 for Nuke 16.
 
-## Setup
+## Setup (VS Code / Claude Code)
 
-1. **Python side** (optional): install [uv](https://docs.astral.sh/uv/). The client
-   starts the server with `uv run`, which creates `.venv` and installs the locked
-   dependencies on first start. Running `uv sync` once beforehand avoids a slow first
-   start that some clients may time out on, and shows install errors in your terminal.
-2. **Nuke side**, pick one:
-   - `python install_nuke_plugin.py` — adds one `nuke.pluginAddPath(...)` line to
-    `~/.nuke/init.py` (`--uninstall` removes it), or
-   - add `C:/git/nuke/NukeAssistant/nuke_plugin` to `NUKE_PATH`.
+1. **Open this folder in Claude Code** (VS Code extension, desktop app or CLI) and
+   approve the `nuke` server when asked. [.mcp.json](.mcp.json) starts it with Nuke's Python:
+   ```json
+   "command": "C:/Program Files/Nuke15.1v3/python.exe",
+   "args": ["C:/git/nuke/NukeAssistant/nuke_mcp_server.py"]
+   ```
+   Different Nuke version or folder? Change these paths (Nuke 15 or newer, which
+   ships Python 3.10+). Any Python 3.10+ works too.
+2. **Load the bridge in your Nuke** (so Claude can work in the Nuke you have open):
+   ```
+   "C:\Program Files\Nuke15.1v3\python.exe" install_nuke_plugin.py
+   ```
+   This adds one `nuke.pluginAddPath(...)` line to `~/.nuke/init.py`
+   (`--uninstall` removes it). Restart Nuke: the bridge starts automatically and a
+   **NukeAssistant** menu appears (Start / Stop / Status; `NUKE_MCP_AUTOSTART=0` turns
+   autostart off).
 
-    Interactive Nuke then starts the bridge automatically and shows a **NukeAssistant**
-    menu (Start / Stop / Status). Set `NUKE_MCP_AUTOSTART=0` to start it by hand.
-3. **Client**:
-   - Claude Code: `.mcp.json` in this folder already registers the `nuke` server.
-   - Claude Desktop / others:
-     ```json
-     { "mcpServers": { "nuke": { "command": "uv",
-         "args": ["run", "--directory", "C:/git/nuke/NukeAssistant", "nuke-mcp"] } } }
-     ```
+   Skip this step if Claude should only use Nuke sessions it starts itself with
+   `launch_nuke`, which loads the bridge on its own.
 
-Without step 2 the assistant can still call `launch_nuke`, which starts Nuke (GUI or
-headless) with the plugin injected through `NUKE_PATH`.
+Other MCP clients (e.g. Claude Desktop) use the same `command` and `args`.
 
 ## Tools (57)
 
@@ -92,7 +95,10 @@ Nuke15.1.exe -t nuke_plugin/start_headless.py [script.nk]
 
 Serves until `shutdown_headless_nuke` (or Ctrl+C). Needs a render or interactive licence.
 
-## Tests
+## Tests (development only)
+
+The tests need [uv](https://docs.astral.sh/uv/), which installs pytest and the
+official MCP SDK (used as an independent client to check the server).
 
 ```
 uv run pytest                                            # offline: stdio MCP + protocol
@@ -110,6 +116,10 @@ nuke_plugin/                 # goes on NUKE_PATH
     server.py                # socket server + main-thread executors
     registry.py, utils.py    # command registry, knob/node helpers
     commands/                # session, script, nodes, knobs, graph, render, code, catalog, ui
-src/nuke_mcp/                # MCP server: server.py (tools), connection.py, launcher.py
+nuke_mcp_server.py           # MCP server entry point (what .mcp.json runs)
+src/nuke_mcp/
+  server.py                  # the 57 tools
+  mcp_lite.py                # minimal stdio MCP implementation (tools only, stdlib)
+  connection.py, launcher.py # bridge client, Nuke launcher
 tests/
 ```

@@ -12,11 +12,8 @@ import json
 import os
 from typing import Any, Literal
 
-from mcp.server.mcpserver import Image, MCPServer
-from mcp.server.mcpserver.exceptions import ToolError
-from mcp.types import ToolAnnotations
-
 from . import launcher
+from .mcp_lite import Image, MCPServer, ToolAnnotations, ToolError
 from .connection import DEFAULT_PORT, PORT_SCAN, NukeCommandError, NukeConnection, NukeConnectionError, probe
 
 INSTRUCTIONS = """\

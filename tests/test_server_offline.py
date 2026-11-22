@@ -6,32 +6,69 @@ import asyncio
 import json
 import os
 import sys
+from pathlib import Path
 
+import pytest
 from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
 from nuke_mcp.connection import NukeCommandError, NukeConnection
+from nuke_mcp.launcher import find_nuke_executable
 
 UNUSED_PORT = 54399
+SERVER_SCRIPT = str(Path(__file__).resolve().parents[1] / "nuke_mcp_server.py")
 
 
-def test_stdio_server_lists_tools_and_reports_missing_nuke():
+def _interpreters():
+    found = [pytest.param(sys.executable, id="dev-python")]
+    try:
+        nuke_python = Path(find_nuke_executable()).with_name("python.exe" if os.name == "nt" else "python3")
+    except Exception:
+        nuke_python = None
+    if nuke_python and nuke_python.is_file():
+        found.append(pytest.param(str(nuke_python), id="nuke-python"))
+    return found
+
+
+@pytest.mark.parametrize("python", _interpreters())
+def test_stdio_server_with_sdk_client(python):
+    """The official MCP SDK client talks to our stdlib server (also on Nuke's own Python)."""
+
     async def run():
         env = dict(os.environ, NUKE_MCP_PORT=str(UNUSED_PORT))
-        params = StdioServerParameters(command=sys.executable, args=["-m", "nuke_mcp"], env=env)
+        env.pop("PYTHONPATH", None)
+        params = StdioServerParameters(command=python, args=[SERVER_SCRIPT], env=env)
         async with stdio_client(params) as (read, write):
             async with ClientSession(read, write) as session:
                 init = await session.initialize()
                 assert "Nuke" in (init.instructions or "")
                 tools = (await session.list_tools()).tools
-                names = {t.name for t in tools}
-                assert {"create_nodes", "render_preview", "set_knobs", "execute_python"} <= names
+                by_name = {t.name: t for t in tools}
+                assert {"create_nodes", "render_preview", "set_knobs", "execute_python"} <= set(by_name)
                 assert len(tools) >= 50
+                schema = by_name["launch_nuke"].input_schema
+                assert schema["properties"]["mode"]["enum"] == ["gui", "headless"]
+                assert by_name["get_node_info"].annotations.read_only_hint is True
                 result = await session.call_tool("get_session_info", {})
                 assert result.is_error
                 assert "Cannot reach Nuke" in result.content[0].text
+                bad = await session.call_tool("list_nodes", {"no_such_arg": 1})
+                assert bad.is_error and "no_such_arg" in bad.content[0].text
 
     asyncio.run(run())
+
+
+def test_schema_and_argument_coercion():
+    from nuke_mcp.server import mcp
+
+    tools = {t.name: t for t in mcp.list_tools()}
+    props = tools["render"].input_schema["properties"]
+    assert props["nodes"] == {"anyOf": [{"type": "array", "items": {"type": "string"}}, {"type": "null"}],
+                              "default": None}
+    assert "node" in tools["get_node_info"].input_schema["required"]
+    # JSON-encoded lists from clients are decoded; ints become floats for float params.
+    args = tools["sample_pixel"].prepare_arguments({"node": "Blur1", "x": 3, "y": 4.0, "area": "[2, 2]"})
+    assert args == {"node": "Blur1", "x": 3.0, "y": 4.0, "area": [2, 2]}
 
 
 def test_connection_protocol_against_fake_bridge():

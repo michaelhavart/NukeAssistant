@@ -4,15 +4,15 @@ version = "0.1.0"
 description = "MCP server that lets AI assistants control and build content in Foundry Nuke"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-    "mcp>=2",  # uses the 2.x API (mcp.server.mcpserver)
-]
+# None: the server speaks MCP itself (src/nuke_mcp/mcp_lite.py) and runs on Nuke's Python.
+dependencies = []
 
 [project.scripts]
 nuke-mcp = "nuke_mcp.server:main"
 
 [dependency-groups]
-dev = ["pytest>=8"]
+# The MCP SDK is only used by the tests, as an independent client.
+dev = ["pytest>=8", "mcp>=2"]
 
 [build-system]
 requires = ["hatchling"]

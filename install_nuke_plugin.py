@@ -3,6 +3,8 @@
     python install_nuke_plugin.py            # install
     python install_nuke_plugin.py --uninstall
 
+Any Python works, including Nuke's own: "C:/Program Files/Nuke15.1v3/python.exe".
+
 Alternative without touching ~/.nuke: add nuke_plugin/ to the NUKE_PATH environment variable.
 """
 
