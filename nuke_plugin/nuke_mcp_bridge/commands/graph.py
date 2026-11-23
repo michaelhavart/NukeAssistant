@@ -11,6 +11,7 @@ from ..utils import (
     find_group,
     find_node,
     find_nodes,
+    node_has_error,
     node_ref,
     node_size,
     node_summary,
@@ -117,7 +118,7 @@ def find_errors(parent=None, recursive=True):
     errors = []
     for n in nodes:
         try:
-            if n.hasError():
+            if node_has_error(n):
                 entry = node_summary(n)
                 knob = n.knob("file")
                 if knob is not None:
