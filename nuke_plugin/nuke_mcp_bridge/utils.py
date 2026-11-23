@@ -139,8 +139,23 @@ def parent_group(node):
     """The Group (or Root) that contains ``node``."""
     full = node.fullName()
     if "." in full:
-        return nuke.toNode(full.rsplit(".", 1)[0])
+        with nuke.root():
+            return nuke.toNode(full.rsplit(".", 1)[0])
     return nuke.root()
+
+
+def node_has_error(node, tree=False):
+    """node.hasError() (or treeHasError()), evaluated in the node's own group.
+
+    Outside its group's context a node inside a Group/Gizmo can't resolve its
+    inputs or ``parent.`` expressions, so Nuke reports every such node as erroring.
+    """
+    check = node.treeHasError if tree else node.hasError
+    group = parent_group(node) if not isinstance(node, nuke.Root) else None
+    if group is None:
+        return bool(check())
+    with group:
+        return bool(check())
 
 
 def input_names(node):
@@ -179,7 +194,7 @@ def node_summary(node, positions=False):
     if isinstance(node, nuke.Group) and not isinstance(node, nuke.Root):
         info["is_group"] = True
     try:
-        if node.hasError():
+        if node_has_error(node):
             info["error"] = True
     except Exception:
         pass

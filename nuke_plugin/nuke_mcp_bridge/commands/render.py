@@ -13,6 +13,7 @@ from ..utils import (
     find_group,
     find_node,
     find_nodes,
+    node_has_error,
     node_ref,
     node_summary,
     norm_path,
@@ -179,8 +180,8 @@ def get_image_info(node, frame=None, metadata=True, metadata_filter=None, parent
     info = {"node": node_ref(n), "class": n.Class()}
     info.update(_image_info(n, frame))
     try:
-        info["has_error"] = bool(n.hasError())
-        info["tree_has_error"] = bool(n.treeHasError())
+        info["has_error"] = node_has_error(n)
+        info["tree_has_error"] = node_has_error(n, tree=True)
     except Exception:
         pass
     if metadata:
